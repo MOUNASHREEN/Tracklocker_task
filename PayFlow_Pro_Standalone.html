@@ -1,0 +1,1076 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PayFlow Pro v3 — Standalone</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,900;1,700&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+<!-- JSZip for Excel export — CDN, works offline after first load -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<style>
+/* ══════════════════════════════════════════
+   TOKENS — WARM AMBER / EDITORIAL LIGHT
+══════════════════════════════════════════ */
+:root{
+  --cream:#faf7f2; --sand:#f0e9dc; --warm:#e8ddd0; --warm2:#ddd0c0;
+  --border:#d4c9b8; --muted:#9e8f7e; --body:#3d3328; --head:#1a1510;
+  --ink:#0d0a07; --accent:#c9651a; --accent2:#e07b2a; --amber:#b8860b;
+  --green:#2d6a4f; --green2:#166534; --red:#a83232; --red2:#991b1b;
+  --blue:#1e3a5f; --sky:#0284c7;
+  --playfair:'Playfair Display',serif;
+  --jakarta:'Plus Jakarta Sans',sans-serif;
+  --code:'Fira Code',monospace;
+  --side:240px;
+}
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
+html,body{height:100%;}
+body{background:var(--cream);color:var(--body);font-family:var(--jakarta);display:flex;min-height:100vh;overflow-x:hidden;}
+
+/* ══ SIDEBAR ══ */
+.sidebar{width:var(--side);flex-shrink:0;background:var(--head);display:flex;flex-direction:column;position:fixed;top:0;left:0;bottom:0;z-index:50;overflow:hidden;transition:transform 0.3s;}
+.sidebar::before{content:'';position:absolute;bottom:-80px;right:-80px;width:200px;height:200px;border-radius:50%;background:radial-gradient(circle,rgba(201,101,26,0.2),transparent);pointer-events:none;}
+.sb-top{padding:22px 18px;border-bottom:1px solid rgba(255,255,255,0.07);}
+.sb-brand{display:flex;align-items:center;gap:10px;}
+.sb-icon{width:38px;height:38px;border:1.5px solid var(--accent);border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:19px;flex-shrink:0;position:relative;}
+.sb-icon::after{content:'';position:absolute;inset:3px;border:1px solid rgba(201,101,26,0.25);border-radius:2px;}
+.sb-name{font-family:var(--playfair);font-size:16px;color:#fff;line-height:1;}
+.sb-ver{font-size:9px;color:rgba(255,255,255,0.3);letter-spacing:2px;text-transform:uppercase;font-family:var(--code);margin-top:2px;}
+.sb-nav{padding:14px 10px;flex:1;}
+.sb-lbl{font-size:9px;font-weight:700;color:rgba(255,255,255,0.2);letter-spacing:3px;text-transform:uppercase;padding:10px 10px 6px;font-family:var(--code);}
+.sb-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:6px;text-decoration:none;color:rgba(255,255,255,0.5);font-size:13px;font-weight:500;transition:all 0.2s;margin-bottom:2px;border-left:2px solid transparent;cursor:pointer;border:none;background:none;width:100%;text-align:left;}
+.sb-item:hover{color:rgba(255,255,255,0.85);background:rgba(255,255,255,0.05);}
+.sb-item.on{color:#fff;background:rgba(201,101,26,0.15);border-left:2px solid var(--accent);}
+.sb-ico{width:28px;height:28px;border-radius:6px;background:rgba(255,255,255,0.05);display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0;}
+.sb-item.on .sb-ico{background:rgba(201,101,26,0.2);}
+.sb-ct{margin-left:auto;background:rgba(201,101,26,0.2);color:var(--accent2);font-size:10px;font-weight:700;padding:2px 7px;border-radius:4px;font-family:var(--code);}
+.sb-mode{margin:0 10px;padding:11px 13px;border-radius:6px;border:1px solid rgba(201,101,26,0.2);background:rgba(201,101,26,0.06);}
+.sb-dot{display:inline-block;width:6px;height:6px;background:var(--accent);border-radius:50%;margin-right:6px;animation:blink 1.5s infinite;}
+@keyframes blink{0%,100%{opacity:1;}50%{opacity:0.3;}}
+.sb-mode-txt{font-size:11px;font-weight:700;color:var(--accent2);font-family:var(--code);}
+.sb-mode-sub{font-size:10px;color:rgba(255,255,255,0.3);margin-top:3px;}
+.sb-user{margin:10px 10px 18px;padding:10px 12px;border-radius:6px;border:1px solid rgba(255,255,255,0.07);display:flex;align-items:center;gap:10px;}
+.sb-av{width:26px;height:26px;background:linear-gradient(135deg,var(--accent),var(--amber));border-radius:6px;display:flex;align-items:center;justify-content:center;font-family:var(--playfair);font-size:11px;font-weight:700;color:#fff;flex-shrink:0;}
+.sb-uname{font-size:12px;font-weight:600;color:rgba(255,255,255,0.7);flex:1;}
+.sb-logout-btn{font-size:11px;color:rgba(255,100,100,0.7);font-weight:600;cursor:pointer;background:none;border:none;transition:color 0.2s;}
+.sb-logout-btn:hover{color:#f87171;}
+
+/* ══ MAIN ══ */
+.main{margin-left:var(--side);flex:1;display:flex;flex-direction:column;min-height:100vh;}
+.topbar{height:58px;background:rgba(250,247,242,0.95);backdrop-filter:blur(10px);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 28px;position:sticky;top:0;z-index:40;}
+.page-heading{font-family:var(--playfair);font-size:19px;font-weight:700;color:var(--head);}
+.page-heading span{color:var(--accent);}
+.topbar-pills{display:flex;align-items:center;gap:8px;}
+.pill{font-size:10px;font-weight:600;padding:4px 11px;border-radius:4px;font-family:var(--code);}
+.pill-cf{background:var(--head);color:var(--accent2);}
+.pill-sim{background:#fef3c7;color:#92400e;border:1px solid #fcd34d;}
+.pill-date{background:var(--sand);color:var(--muted);border:1px solid var(--border);}
+.content{padding:24px 28px;flex:1;}
+
+/* ══ LOGIN PAGE ══ */
+.login-page{display:flex;min-height:100vh;width:100%;}
+.lp-left{width:42%;background:var(--head);display:flex;flex-direction:column;justify-content:center;padding:56px 48px;position:relative;overflow:hidden;flex-shrink:0;}
+.lp-left::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at 20% 80%,rgba(201,101,26,0.25),transparent 60%),radial-gradient(ellipse at 80% 20%,rgba(184,134,11,0.15),transparent 50%);}
+.lp-pattern{position:absolute;inset:0;opacity:0.04;background-image:repeating-linear-gradient(45deg,#fff 0,#fff 1px,transparent 0,transparent 50%);background-size:20px 20px;}
+.lp-content{position:relative;z-index:1;}
+.lp-brand{display:flex;align-items:center;gap:14px;margin-bottom:44px;}
+.lp-ico{width:50px;height:50px;border:2px solid var(--accent);border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:24px;position:relative;}
+.lp-ico::after{content:'';position:absolute;inset:3px;border:1px solid rgba(201,101,26,0.3);border-radius:2px;}
+.lp-bname{font-family:var(--playfair);font-size:21px;color:#fff;line-height:1;}
+.lp-bsub{font-size:10px;color:rgba(255,255,255,0.35);letter-spacing:3px;text-transform:uppercase;font-family:var(--code);margin-top:3px;}
+.lp-headline{font-family:var(--playfair);font-size:40px;font-weight:900;color:#fff;line-height:1.1;margin-bottom:18px;}
+.lp-headline em{font-style:italic;color:var(--accent2);}
+.lp-desc{font-size:13px;color:rgba(255,255,255,0.45);line-height:1.8;max-width:300px;margin-bottom:36px;}
+.lp-feats{display:flex;flex-direction:column;gap:10px;}
+.lp-feat{display:flex;align-items:center;gap:10px;font-size:12px;color:rgba(255,255,255,0.55);}
+.lp-dot{width:5px;height:5px;background:var(--accent);border-radius:50%;flex-shrink:0;}
+.lp-footer{position:absolute;bottom:24px;left:48px;font-size:10px;color:rgba(255,255,255,0.18);font-family:var(--code);}
+.lp-right{flex:1;display:flex;align-items:center;justify-content:center;padding:36px;background:var(--cream);}
+.form-box{width:100%;max-width:380px;}
+.tab-row{display:flex;border-bottom:2px solid var(--border);margin-bottom:28px;}
+.tab-btn{padding:9px 18px;font-size:12px;font-weight:600;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px;transition:all 0.2s;letter-spacing:0.5px;text-transform:uppercase;background:none;border-top:none;border-left:none;border-right:none;font-family:var(--jakarta);}
+.tab-btn:hover{color:var(--body);}
+.tab-btn.on{color:var(--accent);border-bottom-color:var(--accent);}
+.form-title{font-family:var(--playfair);font-size:26px;font-weight:700;color:var(--head);margin-bottom:5px;}
+.form-sub{font-size:13px;color:var(--muted);margin-bottom:24px;}
+.creds-hint{background:var(--sand);border-left:3px solid var(--amber);padding:11px 14px;border-radius:0 7px 7px 0;margin-bottom:22px;font-size:12px;color:var(--muted);line-height:2;}
+.creds-hint strong{color:var(--amber);font-family:var(--code);}
+.field{margin-bottom:16px;}
+.field label{display:block;font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:7px;}
+.field input{width:100%;background:#fff;border:1.5px solid var(--border);border-radius:6px;padding:11px 14px;font-family:var(--jakarta);font-size:13px;color:var(--head);outline:none;transition:all 0.2s;}
+.field input:focus{border-color:var(--accent);box-shadow:0 0 0 4px rgba(201,101,26,0.1);}
+.field input::placeholder{color:var(--border);}
+.btn-signin{width:100%;padding:13px;background:var(--head);color:#fff;border:none;border-radius:6px;font-family:var(--playfair);font-size:15px;font-weight:700;cursor:pointer;transition:all 0.2s;margin-top:4px;letter-spacing:0.5px;position:relative;overflow:hidden;}
+.btn-signin::before{content:'';position:absolute;left:-100%;top:0;bottom:0;width:100%;background:linear-gradient(90deg,transparent,rgba(201,101,26,0.35),transparent);transition:left 0.5s;}
+.btn-signin:hover::before{left:100%;}
+.btn-signin:hover{background:#2d2820;}
+.alert{padding:11px 15px;border-radius:6px;font-size:13px;margin-bottom:16px;display:flex;align-items:center;gap:8px;animation:slideIn 0.3s ease;}
+@keyframes slideIn{from{opacity:0;transform:translateY(-6px);}to{opacity:1;transform:translateY(0);}}
+.alert.ok{background:#f0fdf4;border:1px solid #86efac;color:var(--green2);}
+.alert.err{background:#fef2f2;border:1px solid #fca5a5;color:var(--red2);}
+.alert.warn{background:#fffbeb;border:1px solid #fcd34d;color:#92400e;}
+.divider-line{height:1px;background:var(--border);margin:20px 0;position:relative;}
+.divider-line span{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);background:var(--cream);padding:0 10px;font-size:10px;color:var(--muted);letter-spacing:2px;text-transform:uppercase;white-space:nowrap;}
+.sec-lbl{font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:2px;margin-bottom:14px;}
+.powered{text-align:center;margin-top:22px;font-size:11px;color:var(--muted);display:flex;align-items:center;justify-content:center;gap:8px;}
+.cf-tag{background:var(--head);color:var(--accent2);font-size:10px;font-weight:600;padding:2px 8px;border-radius:3px;font-family:var(--code);}
+
+/* ══ STATS ══ */
+.stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:22px;}
+.scard{background:#fff;border:1px solid var(--border);border-radius:10px;padding:18px;position:relative;overflow:hidden;transition:transform 0.2s,box-shadow 0.2s;cursor:default;}
+.scard:hover{transform:translateY(-2px);box-shadow:0 8px 22px rgba(26,21,16,0.08);}
+.scard::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;}
+.scard.c1::before{background:linear-gradient(90deg,var(--accent),var(--accent2));}
+.scard.c2::before{background:linear-gradient(90deg,var(--amber),#d97706);}
+.scard.c3::before{background:linear-gradient(90deg,var(--green),#059669);}
+.scard.c4::before{background:linear-gradient(90deg,var(--blue),var(--sky));}
+.scard-ico{font-size:20px;margin-bottom:10px;}
+.scard-val{font-family:var(--playfair);font-size:26px;font-weight:700;color:var(--head);margin-bottom:3px;}
+.scard-label{font-size:12px;color:var(--muted);}
+.scard-sub{font-size:10px;color:var(--warm2);margin-top:2px;}
+
+/* ══ CARDS / SECTIONS ══ */
+.card{background:#fff;border:1px solid var(--border);border-radius:10px;padding:22px;margin-bottom:18px;}
+.card-title{font-family:var(--playfair);font-size:14px;font-weight:700;color:var(--head);margin-bottom:16px;}
+.sec-bar{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;}
+.sec-title{font-family:var(--playfair);font-size:15px;font-weight:700;color:var(--head);display:flex;align-items:center;gap:8px;}
+.sec-title::before{content:'';width:4px;height:16px;background:var(--accent);border-radius:2px;}
+.form-section{background:#fff;border:1px solid var(--border);border-radius:10px;padding:24px;margin-bottom:18px;}
+.form-section-title{font-family:var(--playfair);font-size:17px;font-weight:700;color:var(--head);margin-bottom:20px;padding-bottom:12px;border-bottom:1px solid var(--warm);}
+.form-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;}
+.f-field{display:flex;flex-direction:column;gap:5px;}
+.f-field label{font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1.5px;}
+.f-field input,.f-field select{background:var(--cream);border:1.5px solid var(--border);border-radius:6px;padding:10px 13px;font-family:var(--jakarta);font-size:13px;color:var(--head);outline:none;transition:all 0.2s;appearance:none;}
+.f-field input:focus,.f-field select:focus{border-color:var(--accent);background:#fff;box-shadow:0 0 0 4px rgba(201,101,26,0.08);}
+.f-field input::placeholder{color:var(--border);}
+.f-hint{font-size:10px;color:var(--muted);}
+.form-actions{display:flex;gap:10px;margin-top:20px;padding-top:16px;border-top:1px solid var(--warm);}
+
+/* ══ BUTTONS ══ */
+.btn{padding:9px 18px;border-radius:6px;font-family:var(--jakarta);font-size:13px;font-weight:600;cursor:pointer;border:none;transition:all 0.2s;display:inline-flex;align-items:center;gap:6px;}
+.btn-dark{background:var(--head);color:#fff;}
+.btn-dark:hover{background:var(--ink);}
+.btn-accent{background:var(--accent);color:#fff;box-shadow:0 2px 8px rgba(201,101,26,0.25);}
+.btn-accent:hover{background:var(--accent2);transform:translateY(-1px);}
+.btn-ghost{background:var(--sand);color:var(--body);border:1px solid var(--border);}
+.btn-ghost:hover{background:var(--warm);}
+.btn-danger{background:#fef2f2;color:var(--red2);border:1px solid #fca5a5;}
+.btn-danger:hover{background:#fee2e2;}
+.btn-green{background:#f0fdf4;color:var(--green2);border:1px solid #86efac;}
+.btn-amber{background:#fffbeb;color:#92400e;border:1px solid #fcd34d;}
+.btn-sm{padding:6px 13px;font-size:12px;}
+.btn-xs{padding:4px 10px;font-size:11px;}
+
+/* ══ DEPT FILTERS ══ */
+.dept-bar{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px;}
+.dept-btn{padding:5px 13px;border-radius:4px;border:1px solid var(--border);background:var(--cream);color:var(--muted);font-size:11px;font-weight:600;cursor:pointer;transition:all 0.15s;}
+.dept-btn:hover{border-color:var(--accent);color:var(--accent);}
+.dept-btn.on{background:var(--head);border-color:var(--head);color:#fff;}
+
+/* ══ TABLE ══ */
+.tbl-box{background:#fff;border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-bottom:18px;}
+.tbl-box table{width:100%;border-collapse:collapse;}
+.tbl-box thead th{background:var(--head);padding:11px 14px;text-align:left;font-size:9px;letter-spacing:2px;text-transform:uppercase;color:rgba(255,255,255,0.5);font-weight:700;font-family:var(--code);}
+.tbl-box tbody tr{border-bottom:1px solid var(--warm);transition:background 0.15s;}
+.tbl-box tbody tr:nth-child(even){background:var(--cream);}
+.tbl-box tbody tr:last-child{border-bottom:none;}
+.tbl-box tbody tr:hover{background:var(--sand);}
+.tbl-box td{padding:11px 14px;font-size:13px;}
+.emp-av{width:30px;height:30px;border-radius:6px;background:var(--head);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:var(--accent);flex-shrink:0;font-family:var(--playfair);}
+.emp-row{display:flex;align-items:center;gap:9px;}
+.emp-nm{font-size:13px;font-weight:600;color:var(--head);}
+.emp-em{font-size:11px;color:var(--muted);}
+.dept-tag{font-size:10px;font-weight:700;padding:2px 7px;border-radius:3px;border:1px solid;font-family:var(--code);}
+.dt-Engineering{background:#eff6ff;color:#1d4ed8;border-color:#bfdbfe;}
+.dt-Design{background:#faf5ff;color:#7e22ce;border-color:#e9d5ff;}
+.dt-Marketing{background:#fffbeb;color:#92400e;border-color:#fcd34d;}
+.dt-Finance{background:#f0fdf4;color:var(--green2);border-color:#86efac;}
+.dt-HR{background:#fdf2f8;color:#9d174d;border-color:#f9a8d4;}
+.dt-Support{background:#ecfeff;color:#164e63;border-color:#a5f3fc;}
+.dt-Operations{background:#fff7ed;color:#9a3412;border-color:#fdba74;}
+.dt-Sales{background:#f0fdfa;color:#134e4a;border-color:#99f6e4;}
+.mono{font-family:var(--code);font-size:11px;color:var(--muted);}
+.salary-tag{font-family:var(--code);font-size:13px;font-weight:600;color:var(--green2);}
+.upi-tag{font-size:10px;background:#faf5ff;color:#7e22ce;border:1px solid #e9d5ff;padding:2px 7px;border-radius:3px;font-family:var(--code);}
+input[type="checkbox"]{width:14px;height:14px;accent-color:var(--accent);cursor:pointer;}
+
+/* ══ PAYOUT CONTROLS ══ */
+.pay-ctrl{background:#fff;border:1px solid var(--border);border-radius:10px;padding:18px 22px;margin-bottom:16px;}
+.pay-ctrl-top{display:flex;align-items:flex-start;gap:22px;flex-wrap:wrap;margin-bottom:14px;}
+.ctrl-group{flex:1;min-width:180px;}
+.ctrl-label{font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:7px;font-family:var(--code);}
+.mode-btns{display:flex;gap:6px;}
+.mode-btn{padding:7px 14px;border-radius:5px;border:1.5px solid var(--border);background:var(--cream);color:var(--muted);font-size:12px;font-weight:600;cursor:pointer;transition:all 0.2s;font-family:var(--jakarta);}
+.mode-btn.on-bank{background:var(--head);border-color:var(--head);color:#fff;}
+.mode-btn.on-upi{background:#7e22ce;border-color:#7e22ce;color:#fff;}
+.mode-btn.on-auto{background:var(--accent);border-color:var(--accent);color:#fff;}
+.pay-summary{background:var(--sand);border:1px solid var(--border);border-radius:8px;padding:14px 18px;display:flex;align-items:center;justify-content:space-between;}
+.pay-total-val{font-family:var(--playfair);font-size:24px;font-weight:700;color:var(--head);}
+.pay-total-sub{font-size:11px;color:var(--muted);margin-top:2px;}
+.btn-fire{background:var(--head);color:#fff;border:none;padding:13px 28px;border-radius:6px;font-family:var(--playfair);font-size:15px;font-weight:700;cursor:pointer;transition:all 0.25s;display:flex;align-items:center;gap:10px;white-space:nowrap;position:relative;overflow:hidden;box-shadow:0 4px 14px rgba(26,21,16,0.2);}
+.btn-fire::before{content:'';position:absolute;left:-100%;top:0;bottom:0;width:100%;background:linear-gradient(90deg,transparent,rgba(201,101,26,0.4),transparent);transition:left 0.4s;}
+.btn-fire:hover::before{left:100%;}
+.btn-fire:hover{transform:translateY(-2px);box-shadow:0 8px 22px rgba(26,21,16,0.25);}
+
+/* ══ CF FLOW STEPS ══ */
+.cf-steps{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:18px;}
+.cf-step{background:var(--sand);border:1px solid var(--border);border-radius:8px;padding:12px;position:relative;text-align:center;}
+.cf-step::after{content:'›';position:absolute;right:-8px;top:50%;transform:translateY(-50%);color:var(--border);font-size:18px;font-weight:700;}
+.cf-step:last-child::after{display:none;}
+.cf-num{width:24px;height:24px;background:var(--head);color:var(--accent);border-radius:4px;font-family:var(--playfair);font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;margin:0 auto 7px;}
+.cf-title{font-size:11px;font-weight:700;color:var(--head);margin-bottom:2px;}
+.cf-sub{font-size:10px;color:var(--muted);font-family:var(--code);}
+.notice{border-radius:8px;padding:11px 15px;margin-bottom:16px;font-size:13px;display:flex;align-items:flex-start;gap:9px;}
+.notice.sim{background:#fffbeb;border:1px solid #fcd34d;color:#92400e;}
+
+/* ══ RESULT CARDS ══ */
+.result-strip{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--border);border-radius:10px;overflow:hidden;border:1px solid var(--border);margin-bottom:20px;}
+.rs{background:#fff;padding:16px;text-align:center;}
+.rs-val{font-family:var(--playfair);font-size:24px;font-weight:700;}
+.rs-lbl{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1.5px;margin-top:4px;font-family:var(--code);}
+.results-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:13px;}
+.rc{background:#fff;border:1px solid var(--border);border-radius:10px;padding:16px;animation:rcIn 0.4s ease both;}
+@keyframes rcIn{from{opacity:0;transform:translateY(12px);}to{opacity:1;transform:translateY(0);}}
+.rc.success{border-top:3px solid var(--green);}
+.rc.failed{border-top:3px solid var(--red);}
+.rc-head{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px;}
+.rc-name{font-family:var(--playfair);font-size:14px;font-weight:700;color:var(--head);}
+.rc-sub{font-size:11px;color:var(--muted);margin-top:2px;}
+.rc-badge{font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;padding:3px 9px;border-radius:3px;font-family:var(--code);}
+.rc-badge.success{background:#dcfce7;color:var(--green2);}
+.rc-badge.failed{background:#fee2e2;color:var(--red2);}
+.rc-badge.upi{background:#f3e8ff;color:#7e22ce;}
+.rc-badge.bank{background:#f0f9ff;color:#0369a1;}
+.rc-rows{display:flex;flex-direction:column;gap:6px;}
+.rc-row{display:flex;justify-content:space-between;font-size:12px;}
+.rc-lbl{color:var(--muted);}
+.rc-val{font-family:var(--code);font-size:11px;}
+.rc-val.big{font-family:var(--playfair);font-size:14px;font-weight:700;color:var(--green2);}
+.rc-val.ok{color:var(--green2);}
+.rc-val.fail{color:var(--red2);}
+.rc-val.amber{color:var(--amber);}
+.rc-hr{height:1px;background:var(--warm);margin:3px 0;}
+
+/* ══ HISTORY ══ */
+.hist-item{background:#fff;border:1px solid var(--border);border-radius:10px;padding:15px 20px;margin-bottom:11px;transition:all 0.2s;}
+.hist-item:hover{border-color:var(--accent);box-shadow:0 4px 14px rgba(201,101,26,0.08);}
+.hist-row{display:flex;align-items:center;gap:18px;flex-wrap:wrap;}
+.hist-month{font-family:var(--playfair);font-size:15px;font-weight:700;color:var(--head);min-width:100px;}
+.hist-date{font-size:11px;color:var(--muted);font-family:var(--code);}
+.hist-stats{display:flex;gap:16px;}
+.hist-stat{text-align:center;}
+.hist-stat-val{font-family:var(--code);font-size:14px;font-weight:700;}
+.hist-stat-lbl{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;}
+.hist-amt{font-family:var(--playfair);font-size:16px;font-weight:700;color:var(--accent);}
+.hist-actions{display:flex;gap:6px;align-items:center;margin-left:auto;flex-wrap:wrap;}
+
+/* ══ DASHBOARD WIDGETS ══ */
+.widgets{display:grid;grid-template-columns:1.2fr 0.8fr;gap:14px;margin-bottom:18px;}
+.dept-row{display:flex;align-items:center;gap:9px;padding:7px 0;border-bottom:1px solid var(--warm);}
+.dept-row:last-child{border-bottom:none;}
+.dept-name{font-size:12px;font-weight:600;color:var(--head);width:88px;flex-shrink:0;}
+.dept-track{flex:1;height:5px;background:var(--warm);border-radius:3px;overflow:hidden;}
+.dept-fill{height:100%;border-radius:3px;background:linear-gradient(90deg,var(--accent),var(--amber));transition:width 0.8s cubic-bezier(0.22,1,0.36,1);}
+.dept-meta{font-size:11px;color:var(--muted);width:86px;text-align:right;font-family:var(--code);}
+.recent-row{display:flex;align-items:center;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--warm);}
+.recent-row:last-child{border-bottom:none;}
+.recent-m{font-size:13px;font-weight:600;color:var(--head);}
+.recent-d{font-size:11px;color:var(--muted);font-family:var(--code);}
+.recent-a{font-family:var(--playfair);font-size:14px;font-weight:700;color:var(--accent);}
+.status-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
+.status-dot.ok{background:var(--green);}
+.status-dot.warn{background:var(--amber);}
+.empty{text-align:center;padding:48px;background:#fff;border:1px solid var(--border);border-radius:10px;}
+.empty-ico{font-size:38px;margin-bottom:10px;opacity:0.5;}
+.empty p{color:var(--muted);font-size:14px;line-height:1.7;}
+.empty a{color:var(--accent);text-decoration:none;cursor:pointer;font-weight:600;}
+
+/* ══ LOADING SPINNER ══ */
+.spinner{display:inline-block;width:16px;height:16px;border:2px solid rgba(255,255,255,0.3);border-radius:50%;border-top-color:#fff;animation:spin 0.7s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+
+/* ══ MODAL ══ */
+.modal-bg{position:fixed;inset:0;background:rgba(26,21,16,0.6);z-index:200;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px);}
+.modal{background:#fff;border-radius:12px;padding:28px;max-width:420px;width:90%;box-shadow:0 24px 60px rgba(0,0,0,0.2);animation:modalIn 0.3s cubic-bezier(0.22,1,0.36,1);}
+@keyframes modalIn{from{opacity:0;transform:scale(0.92);}to{opacity:1;transform:scale(1);}}
+.modal-title{font-family:var(--playfair);font-size:18px;font-weight:700;margin-bottom:10px;}
+.modal-desc{font-size:13px;color:var(--muted);line-height:1.7;margin-bottom:20px;}
+.modal-actions{display:flex;gap:10px;justify-content:flex-end;}
+
+@media(max-width:900px){
+  .sidebar{transform:translateX(-100%);}
+  .sidebar.open{transform:translateX(0);}
+  .main{margin-left:0;}
+  .stats-row{grid-template-columns:repeat(2,1fr);}
+  .form-grid{grid-template-columns:1fr 1fr;}
+  .cf-steps{grid-template-columns:repeat(2,1fr);}
+  .widgets{grid-template-columns:1fr;}
+  .content{padding:16px;}
+  .topbar{padding:0 16px;}
+  .lp-left{display:none;}
+}
+</style>
+</head>
+<body>
+<!-- ═══════════════════════════════════════════
+     APP ROOT — rendered by JS
+═══════════════════════════════════════════ -->
+<div id="app"></div>
+
+<script>
+// ════════════════════════════════════════════════════════
+//  PAYFLOW PRO v3 — STANDALONE (No Server / No XAMPP)
+//  Storage: IndexedDB (persistent, survives refresh)
+//  Excel Export: JSZip (OpenXML)
+//  Cashfree: Simulation mode (real API needs CORS proxy)
+// ════════════════════════════════════════════════════════
+
+// ── CONFIG ──────────────────────────────────────────────
+const SIM_MODE = true; // set false + handle CORS for real API
+const CF_ENV   = 'TEST';
+const CF_ID    = 'TEST_CF_CLIENT_ID_HERE';
+const CF_SECRET= 'TEST_CF_CLIENT_SECRET_HERE';
+
+// ── STATE ────────────────────────────────────────────────
+let DB; // IndexedDB
+let state = {
+  page: 'login', tab: 'dashboard',
+  loggedIn: false, username: 'admin',
+  employees: [], payouts: [], payoutItems: [],
+  editEmp: null, deptFilter: 'All', payMode: 'bank',
+  payResults: [], msg: '', msgT: '',
+  loading: false, histDetail: null,
+  credTab: 'login'
+};
+
+const DEPTS = ['Engineering','Design','Marketing','Finance','HR','Support','Operations','Sales'];
+const BANKS = ['HDFC Bank','ICICI Bank','SBI','Axis Bank','Kotak Bank','PNB','Bank of Baroda','Canara Bank','Yes Bank','IndusInd Bank'];
+const SAMPLE_EMPLOYEES = [
+  {name:'Ravi Kumar',email:'ravi@company.com',mobile:'9000000001',department:'Engineering',bank_name:'HDFC Bank',account_number:'1234567890',ifsc:'HDFC0001234',upi_id:'ravi@okaxis',salary:45000},
+  {name:'Priya Sharma',email:'priya@company.com',mobile:'9000000002',department:'Design',bank_name:'ICICI Bank',account_number:'9876543210',ifsc:'ICIC0002345',upi_id:'priya@oksbi',salary:52000},
+  {name:'Amit Patel',email:'amit@company.com',mobile:'9000000003',department:'Marketing',bank_name:'SBI',account_number:'5555666677',ifsc:'SBIN0003456',upi_id:'',salary:38000},
+  {name:'Sneha Rao',email:'sneha@company.com',mobile:'9000000004',department:'Finance',bank_name:'Axis Bank',account_number:'1122334455',ifsc:'UTIB0004567',upi_id:'sneha@okicici',salary:61000},
+  {name:'Kiran Nair',email:'kiran@company.com',mobile:'9000000005',department:'HR',bank_name:'Kotak Bank',account_number:'9988776655',ifsc:'KKBK0005678',upi_id:'',salary:47000},
+  {name:'Deepa Menon',email:'deepa@company.com',mobile:'9000000006',department:'Engineering',bank_name:'HDFC Bank',account_number:'4433221100',ifsc:'HDFC0009876',upi_id:'deepa@okaxis',salary:55000},
+  {name:'Suresh Kumar',email:'suresh@company.com',mobile:'9000000007',department:'Support',bank_name:'PNB',account_number:'7788990011',ifsc:'PUNB0001234',upi_id:'',salary:42000},
+  {name:'Nisha Verma',email:'nisha@company.com',mobile:'9000000008',department:'Operations',bank_name:'Yes Bank',account_number:'6677889900',ifsc:'YESB0001234',upi_id:'nisha@ybl',salary:49000},
+  {name:'Arjun Singh',email:'arjun@company.com',mobile:'9000000009',department:'Sales',bank_name:'Canara Bank',account_number:'3344556677',ifsc:'CNRB0001234',upi_id:'arjun@okaxis',salary:44000},
+  {name:'Meera Joshi',email:'meera@company.com',mobile:'9000000010',department:'Finance',bank_name:'HDFC Bank',account_number:'2233445566',ifsc:'HDFC0005678',upi_id:'meera@okhdfcbank',salary:58000},
+];
+
+// ── INDEXEDDB SETUP ──────────────────────────────────────
+function openDB(){
+  return new Promise((resolve,reject)=>{
+    const req = indexedDB.open('PayFlowPro',2);
+    req.onupgradeneeded = e => {
+      const db = e.target.result;
+      if(!db.objectStoreNames.contains('employees')) db.createObjectStore('employees',{keyPath:'id',autoIncrement:true});
+      if(!db.objectStoreNames.contains('payouts'))   db.createObjectStore('payouts',{keyPath:'id',autoIncrement:true});
+      if(!db.objectStoreNames.contains('payout_items')) db.createObjectStore('payout_items',{keyPath:'id',autoIncrement:true});
+      if(!db.objectStoreNames.contains('admin'))     db.createObjectStore('admin',{keyPath:'key'});
+    };
+    req.onsuccess = e => resolve(e.target.result);
+    req.onerror   = e => reject(e);
+  });
+}
+function dbGetAll(store){ return new Promise(r=>{ const tx=DB.transaction(store,'readonly'); const req=tx.objectStore(store).getAll(); req.onsuccess=()=>r(req.result); }); }
+function dbAdd(store,data){ return new Promise(r=>{ const tx=DB.transaction(store,'readwrite'); const req=tx.objectStore(store).add(data); req.onsuccess=()=>r(req.result); }); }
+function dbPut(store,data){ return new Promise(r=>{ const tx=DB.transaction(store,'readwrite'); const req=tx.objectStore(store).put(data); req.onsuccess=()=>r(req.result); }); }
+function dbDelete(store,key){ return new Promise(r=>{ const tx=DB.transaction(store,'readwrite'); tx.objectStore(store).delete(key); tx.oncomplete=()=>r(); }); }
+function dbGet(store,key){ return new Promise(r=>{ const tx=DB.transaction(store,'readonly'); const req=tx.objectStore(store).get(key); req.onsuccess=()=>r(req.result); }); }
+
+async function loadData(){
+  state.employees   = (await dbGetAll('employees')).filter(e=>e.status==='active');
+  state.payouts     = (await dbGetAll('payouts')).reverse();
+  state.payoutItems = await dbGetAll('payout_items');
+}
+
+async function initDB(){
+  DB = await openDB();
+  // Check admin
+  let admin = await dbGet('admin','credentials');
+  if(!admin){
+    // Hash password using simple base64 (browser compatible)
+    await dbPut('admin',{key:'credentials',username:'admin',password:btoa('admin123')});
+  }
+  // Seed employees if empty
+  const emps = await dbGetAll('employees');
+  if(emps.length===0){
+    for(const e of SAMPLE_EMPLOYEES){
+      await dbAdd('employees',{...e,status:'active',created_at:new Date().toISOString()});
+    }
+  }
+  await loadData();
+}
+
+// ── AUTH ─────────────────────────────────────────────────
+async function doLogin(u,p){
+  const admin = await dbGet('admin','credentials');
+  if(admin && admin.username===u && atob(admin.password)===p){
+    state.loggedIn=true; state.username=u; state.page='app'; state.tab='dashboard';
+    setMsg('','');
+  } else { setMsg('Wrong username or password.','err'); }
+  render();
+}
+async function doChangePwd(u,op,np,cp){
+  if(np!==cp){ setMsg('Passwords do not match.','err'); render(); return; }
+  if(np.length<6){ setMsg('Min 6 characters.','err'); render(); return; }
+  const admin=await dbGet('admin','credentials');
+  if(admin && admin.username===u && atob(admin.password)===op){
+    await dbPut('admin',{key:'credentials',username:u,password:btoa(np)});
+    setMsg('Password updated! Please login.','ok'); state.credTab='login';
+  } else { setMsg('Wrong credentials.','err'); }
+  render();
+}
+async function doChangeUser(ou,nu,p){
+  if(nu.length<3){ setMsg('Min 3 chars.','err'); render(); return; }
+  const admin=await dbGet('admin','credentials');
+  if(admin && admin.username===ou && atob(admin.password)===p){
+    await dbPut('admin',{key:'credentials',username:nu,password:btoa(p)});
+    setMsg('Username updated! Please login.','ok'); state.credTab='login';
+  } else { setMsg('Wrong credentials.','err'); }
+  render();
+}
+function doLogout(){ state.loggedIn=false; state.page='login'; state.username='admin'; render(); }
+
+// ── EMPLOYEE CRUD ────────────────────────────────────────
+async function addEmployee(data){
+  await dbAdd('employees',{...data,status:'active',created_at:new Date().toISOString()});
+  await loadData(); setMsg('✅ Employee added!','ok'); state.tab='employees'; render();
+}
+async function editEmployee(id,data){
+  const existing = await dbGet('employees',id);
+  await dbPut('employees',{...existing,...data,id});
+  await loadData(); setMsg('✅ Updated!','ok'); state.editEmp=null; render();
+}
+async function deleteEmployee(id){
+  const existing = await dbGet('employees',id);
+  await dbPut('employees',{...existing,status:'inactive'});
+  await loadData(); setMsg('✅ Employee removed.','ok'); render();
+}
+
+// ── PAYOUT SIMULATION ────────────────────────────────────
+function simPayout(emp,mode){
+  const ok = Math.random()<0.95;
+  const rnd = ()=>Math.random().toString(36).substr(2,10).toUpperCase();
+  if(ok) return {status:'success',beneficiary_id:'EMP_SIM_'+rnd(),transfer_id:(mode==='upi'?'UPI':'BANK')+'_SIM_'+rnd(),utr:'CF'+rnd(),transfer_status:'SUCCESS',mode:mode.toUpperCase(),message:'Salary credited!',timestamp:new Date().toLocaleString('en-IN')};
+  const errs=['Insufficient balance','Account validation failed','IFSC mismatch','Daily limit exceeded','Beneficiary inactive'];
+  return {status:'failed',message:errs[Math.floor(Math.random()*errs.length)],step:'Cashfree '+mode.toUpperCase()};
+}
+
+async function triggerPayout(selectedIds, payMode, deptFilter){
+  state.loading=true; render();
+  const emps = state.employees.filter(e=>selectedIds.includes(e.id));
+  if(!emps.length){ setMsg('❌ Select at least one employee.','err'); state.loading=false; render(); return; }
+
+  const month = new Date().toLocaleString('en-IN',{month:'long',year:'numeric'});
+  const totalAmt = emps.reduce((s,e)=>s+e.salary,0);
+  const pId = await dbAdd('payouts',{payout_month:month,total_amount:totalAmt,total_employees:emps.length,success_count:0,fail_count:0,department_filter:deptFilter,payout_mode:payMode,status:'processing',created_at:new Date().toISOString()});
+
+  const results=[];
+  let ok=0,fail=0,paid=0;
+  for(const emp of emps){
+    let eMode='bank';
+    if((payMode==='upi'||payMode==='auto')&&emp.upi_id) eMode='upi';
+    const r = simPayout(emp,eMode);
+    const item={payout_id:pId,employee_id:emp.id,employee_name:emp.name,department:emp.department,salary:emp.salary,payout_mode:eMode,status:r.status,beneficiary_id:r.beneficiary_id||null,transfer_id:r.transfer_id||null,utr_number:r.utr||null,failure_reason:r.message||null,created_at:new Date().toISOString()};
+    await dbAdd('payout_items',item);
+    r.status==='success'?(ok++,paid+=emp.salary):fail++;
+    results.push({...r,employee:emp.name,salary:emp.salary,dept:emp.department,bank:emp.bank_name,emode:eMode});
+  }
+  // Update payout record
+  const pRec=await dbGet('payouts',pId);
+  await dbPut('payouts',{...pRec,success_count:ok,fail_count:fail,total_amount:paid,status:'completed'});
+  await loadData();
+  state.payResults=results; state.loading=false;
+  setMsg(`✅ Payout complete — ${ok} success, ${fail} failed.`,'ok');
+  render();
+}
+
+async function retryFailed(payoutId){
+  state.loading=true; render();
+  const items = state.payoutItems.filter(i=>i.payout_id===payoutId&&i.status==='failed');
+  if(!items.length){ setMsg('No failed items.','ok'); state.loading=false; render(); return; }
+  const results=[]; let ok=0,fail=0;
+  for(const item of items){
+    const emp=await dbGet('employees',item.employee_id)||{};
+    const eMode=item.payout_mode||'bank';
+    const r=simPayout({...emp,...item},eMode);
+    const upd=await dbGet('payout_items',item.id);
+    await dbPut('payout_items',{...upd,status:r.status,beneficiary_id:r.beneficiary_id||null,transfer_id:r.transfer_id||null,utr_number:r.utr||null,failure_reason:r.message||null});
+    r.status==='success'?ok++:fail++;
+    results.push({...r,employee:item.employee_name,salary:item.salary,dept:item.department,bank:'',emode:eMode});
+  }
+  await loadData();
+  const pRec=await dbGet('payouts',payoutId);
+  const allItems=state.payoutItems.filter(i=>i.payout_id===payoutId);
+  const newOk=allItems.filter(i=>i.status==='success').length;
+  const newFail=allItems.filter(i=>i.status==='failed').length;
+  const newAmt=allItems.filter(i=>i.status==='success').reduce((s,i)=>s+i.salary,0);
+  await dbPut('payouts',{...pRec,success_count:newOk,fail_count:newFail,total_amount:newAmt});
+  await loadData();
+  state.payResults=results; state.loading=false;
+  setMsg(`🔄 Retry: ${ok} recovered, ${fail} still failed.`,fail===0?'ok':'warn');
+  render();
+}
+
+// ── EXCEL EXPORT ─────────────────────────────────────────
+async function exportExcel(payoutId){
+  const items=state.payoutItems.filter(i=>i.payout_id===payoutId);
+  const pInfo=state.payouts.find(p=>p.id===payoutId);
+  if(!items.length||!pInfo){ alert('No data for this payout.'); return; }
+  const succ=items.filter(i=>i.status==='success');
+  const fail=items.filter(i=>i.status==='failed');
+  const paid=succ.reduce((s,i)=>s+i.salary,0);
+  const rate=items.length?Math.round(succ.length/items.length*100):0;
+
+  // Build OpenXML XLSX using JSZip
+  const zip = new JSZip();
+
+  // Shared strings
+  const strings=[];
+  const si=(v)=>{ const s=String(v); const i=strings.findIndex(x=>x===s); if(i>=0)return i; strings.push(s); return strings.length-1; };
+
+  // Helper: build worksheet XML
+  function makeSheet(headers,rows,colWidths){
+    const letterOf=n=>{let r='';while(n>0){n--;r=String.fromCharCode(65+(n%26))+r;n=Math.floor(n/26);}return r;};
+    let xml='<?xml version="1.0" encoding="UTF-8"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">';
+    if(colWidths&&colWidths.length){xml+='<cols>';colWidths.forEach((w,i)=>xml+=`<col min="${i+1}" max="${i+1}" width="${w}" customWidth="1"/>`);xml+='</cols>';}
+    xml+='<sheetData>';
+    // Header row
+    xml+=`<row r="1" ht="28" customHeight="1">`;
+    headers.forEach((h,ci)=>{const ref=letterOf(ci+1)+'1';xml+=`<c r="${ref}" s="1" t="s"><v>${si(h)}</v></c>`;});
+    xml+='</row>';
+    // Data rows
+    rows.forEach((row,ri)=>{
+      const rowNum=ri+2;
+      xml+=`<row r="${rowNum}">`;
+      row.forEach((val,ci)=>{
+        const ref=letterOf(ci+1)+rowNum;
+        const sId=row._styles&&row._styles[ci]?row._styles[ci]:0;
+        if(val===null||val===undefined||val===''){xml+=`<c r="${ref}" s="${sId}"/>`;return;}
+        if(typeof val==='number'){xml+=`<c r="${ref}" s="${sId}" t="n"><v>${val}</v></c>`;}
+        else{xml+=`<c r="${ref}" s="${sId}" t="s"><v>${si(String(val))}</v></c>`;}
+      });
+      xml+='</row>';
+    });
+    xml+='</sheetData></worksheet>';
+    return xml;
+  }
+
+  // Sheet 1 — Summary
+  const summaryRows=[
+    Object.assign(['Payout Month',pInfo.payout_month,'','',''],{_styles:[2,0,0,0,0]}),
+    Object.assign(['Mode',pInfo.payout_mode.toUpperCase(),'','',''],{_styles:[2,0,0,0,0]}),
+    Object.assign(['Department',pInfo.department_filter,'','',''],{_styles:[2,0,0,0,0]}),
+    Object.assign(['Generated',new Date().toLocaleString('en-IN'),'','',''],{_styles:[2,0,0,0,0]}),
+    Object.assign(['','','','',''],{_styles:[]}),
+    Object.assign(['Total Employees',items.length,'','',''],{_styles:[2,7,0,0,0]}),
+    Object.assign(['Successful',succ.length,'','',''],{_styles:[2,3,0,0,0]}),
+    Object.assign(['Failed',fail.length,'','',''],{_styles:[2,4,0,0,0]}),
+    Object.assign(['Amount Disbursed (₹)',paid,'','',''],{_styles:[2,7,0,0,0]}),
+    Object.assign(['Success Rate',rate+'%','','',''],{_styles:[2,0,0,0,0]}),
+  ];
+  zip.folder('xl/worksheets').file('sheet1.xml', makeSheet(['KEY','VALUE','','',''],summaryRows,[28,22,10,10,10]));
+
+  // Sheet 2 — All Transactions
+  const allRows=items.map((r,i)=>Object.assign(
+    [i+1,r.employee_name,r.department,r.salary,r.payout_mode.toUpperCase(),r.status.toUpperCase(),r.beneficiary_id||'—',r.transfer_id||'—',r.utr_number||'—',r.failure_reason||''],
+    {_styles:[8,i%2===1?6:0,i%2===1?6:0,7,8,r.status==='success'?3:4,0,0,0,0]}
+  ));
+  zip.folder('xl/worksheets').file('sheet2.xml', makeSheet(['#','Employee','Department','Salary (₹)','Mode','Status','Beneficiary ID','Transfer ID','UTR Number','Note'],allRows,[5,22,14,14,10,12,26,26,22,28]));
+
+  // Sheet 3 — Successful
+  const succRows=succ.map((r,i)=>Object.assign([i+1,r.employee_name,r.department,r.salary,r.payout_mode.toUpperCase(),r.beneficiary_id||'—',r.transfer_id||'—',r.utr_number||'—'],{_styles:[8,0,0,7,8,0,0,0]}));
+  zip.folder('xl/worksheets').file('sheet3.xml', makeSheet(['#','Employee','Department','Salary (₹)','Mode','Beneficiary ID','Transfer ID','UTR Number'],succRows,[5,22,14,14,10,26,26,22]));
+
+  // Sheet 4 — Failed
+  const failRows=fail.length?fail.map((r,i)=>Object.assign([i+1,r.employee_name,r.department,r.salary,r.payout_mode.toUpperCase(),r.failure_reason||'Unknown'],{_styles:[8,0,0,7,8,4]})):
+    [Object.assign(['No failed transactions in this payout!','','','','',''],{_styles:[]})];
+  zip.folder('xl/worksheets').file('sheet4.xml', makeSheet(['#','Employee','Department','Salary (₹)','Mode','Failure Reason'],failRows,[5,22,14,14,10,34]));
+
+  // Shared strings
+  const ssXml='<?xml version="1.0" encoding="UTF-8"?><sst xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" count="'+strings.length+'" uniqueCount="'+strings.length+'">'+strings.map(s=>'<si><t xml:space="preserve">'+s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')+'</t></si>').join('')+'</sst>';
+  zip.folder('xl').file('sharedStrings.xml',ssXml);
+
+  // Styles
+  const stylesXml=`<?xml version="1.0" encoding="UTF-8"?><styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><numFmts count="1"><numFmt numFmtId="4" formatCode="#,##0.00"/></numFmts><fonts count="3"><font><sz val="10"/><name val="Calibri"/></font><font><b/><sz val="11"/><name val="Calibri"/><color rgb="FFFFFFFF"/></font><font><b/><sz val="10"/><name val="Calibri"/></font></fonts><fills count="6"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill><fill><patternFill patternType="solid"><fgColor rgb="FF1a1510"/></patternFill></fill><fill><patternFill patternType="solid"><fgColor rgb="FFf0fdf4"/></patternFill></fill><fill><patternFill patternType="solid"><fgColor rgb="FFfef2f2"/></patternFill></fill><fill><patternFill patternType="solid"><fgColor rgb="FFf0e9dc"/></patternFill></fill></fills><borders count="2"><border><left/><right/><top/><bottom/><diagonal/></border><border><left style="thin"><color rgb="FFd4c9b8"/></left><right style="thin"><color rgb="FFd4c9b8"/></right><top style="thin"><color rgb="FFd4c9b8"/></top><bottom style="thin"><color rgb="FFd4c9b8"/></bottom><diagonal/></border></borders><cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs><cellXfs count="9"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/><xf numFmtId="0" fontId="1" fillId="2" borderId="1" xfId="0" applyFill="1" applyFont="1" applyBorder="1"><alignment horizontal="center" vertical="center"/></xf><xf numFmtId="0" fontId="2" fillId="0" borderId="1" xfId="0" applyFont="1" applyBorder="1"/><xf numFmtId="0" fontId="0" fillId="3" borderId="1" xfId="0" applyFill="1" applyBorder="1"><alignment horizontal="center"/></xf><xf numFmtId="0" fontId="0" fillId="4" borderId="1" xfId="0" applyFill="1" applyBorder="1"><alignment horizontal="center"/></xf><xf numFmtId="0" fontId="0" fillId="0" borderId="1" xfId="0" applyBorder="1"/><xf numFmtId="0" fontId="0" fillId="5" borderId="1" xfId="0" applyFill="1" applyBorder="1"/><xf numFmtId="4" fontId="0" fillId="0" borderId="1" xfId="0" applyNumberFormat="1" applyBorder="1"/><xf numFmtId="0" fontId="0" fillId="0" borderId="1" xfId="0" applyBorder="1"><alignment horizontal="center"/></xf></cellXfs></styleSheet>`;
+  zip.folder('xl').file('styles.xml',stylesXml);
+
+  // Workbook
+  const wbXml=`<?xml version="1.0" encoding="UTF-8"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets><sheet name="Summary" sheetId="1" r:id="rId1"/><sheet name="All Transactions" sheetId="2" r:id="rId2"/><sheet name="Successful" sheetId="3" r:id="rId3"/><sheet name="Failed" sheetId="4" r:id="rId4"/></sheets></workbook>`;
+  zip.folder('xl').file('workbook.xml',wbXml);
+
+  // Relationships
+  zip.folder('xl/_rels').file('workbook.xml.rels',`<?xml version="1.0" encoding="UTF-8"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet2.xml"/><Relationship Id="rId3" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet3.xml"/><Relationship Id="rId4" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet4.xml"/><Relationship Id="rId5" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/sharedStrings" Target="sharedStrings.xml"/><Relationship Id="rId6" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>`);
+  zip.folder('_rels').file('.rels',`<?xml version="1.0" encoding="UTF-8"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>`);
+  zip.file('[Content_Types].xml',`<?xml version="1.0" encoding="UTF-8"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/><Override PartName="/xl/sharedStrings.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sharedStrings+xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/><Override PartName="/xl/worksheets/sheet2.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/><Override PartName="/xl/worksheets/sheet3.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/><Override PartName="/xl/worksheets/sheet4.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/></Types>`);
+
+  const blob=await zip.generateAsync({type:'blob',mimeType:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a'); a.href=url;
+  a.download=`PayFlow_Payout_${pInfo.payout_month.replace(/ /g,'_')}_${new Date().toISOString().slice(0,10)}.xlsx`;
+  a.click(); URL.revokeObjectURL(url);
+}
+
+// ── PDF EXPORT ───────────────────────────────────────────
+function exportPDF(payoutId){
+  const items=state.payoutItems.filter(i=>i.payout_id===payoutId);
+  const pInfo=state.payouts.find(p=>p.id===payoutId);
+  const succ=items.filter(i=>i.status==='success');
+  const fail=items.filter(i=>i.status==='failed');
+  const paid=succ.reduce((s,i)=>s+i.salary,0);
+  const rate=items.length?Math.round(succ.length/items.length*100):0;
+  const rows=items.map((r,i)=>`<tr><td>${i+1}</td><td>${r.employee_name}</td><td>${r.department}</td><td>₹${r.salary.toLocaleString('en-IN')}</td><td>${r.payout_mode.toUpperCase()}</td><td><span class="${r.status==='success'?'ok':'fail'}">${r.status.toUpperCase()}</span></td><td class="mono">${r.transfer_id||'—'}</td><td class="mono">${r.utr_number||'—'}</td><td>${r.failure_reason||''}</td></tr>`).join('');
+  const w=window.open('','_blank');
+  w.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Payout Report</title><style>body{font-family:'Plus Jakarta Sans',sans-serif;padding:32px;color:#1a1510;background:#faf7f2;font-size:13px;}h1{font-family:'Playfair Display',serif;font-size:28px;font-weight:900;margin-bottom:4px;}
+.meta{color:#9e8f7e;margin-bottom:20px;font-size:11px;}.stats{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:24px;}.stat{background:#fff;border:1px solid #d4c9b8;border-radius:6px;padding:12px;text-align:center;}.stat-val{font-size:20px;font-weight:700;font-family:'Playfair Display',serif;}.stat-lbl{font-size:10px;color:#9e8f7e;text-transform:uppercase;letter-spacing:1px;margin-top:2px;}.stat.ok .stat-val{color:#166534;}.stat.fail .stat-val{color:#991b1b;}.stat.amt .stat-val{color:#c9651a;}table{width:100%;border-collapse:collapse;}th{background:#1a1510;color:#fff;padding:9px 11px;text-align:left;font-size:9px;letter-spacing:1.5px;text-transform:uppercase;}td{padding:8px 11px;border-bottom:1px solid #e8ddd0;font-size:12px;}tr:nth-child(even) td{background:#f0e9dc;}.ok{background:#dcfce7;color:#166534;padding:2px 8px;border-radius:3px;font-weight:700;font-size:10px;}.fail{background:#fee2e2;color:#991b1b;padding:2px 8px;border-radius:3px;font-weight:700;font-size:10px;}.mono{font-family:'Fira Code',monospace;font-size:10px;color:#9e8f7e;}.footer{margin-top:24px;text-align:center;font-size:10px;color:#9e8f7e;border-top:1px solid #d4c9b8;padding-top:14px;}.no-print{margin-bottom:18px;}@media print{.no-print{display:none!important;}}
+</style></head><body><div class="no-print"><button onclick="window.print()" style="padding:9px 20px;background:#c9651a;color:#fff;border:none;border-radius:5px;cursor:pointer;font-size:13px;font-weight:700;margin-right:8px;">🖨️ Print / Save PDF</button><button onclick="window.close()" style="padding:9px 18px;background:#1a1510;color:#fff;border:none;border-radius:5px;cursor:pointer;font-size:13px;">✕ Close</button></div>
+<h1>PayFlow Pro — Payout Report</h1><div class="meta">📅 ${pInfo.payout_month} &nbsp;|&nbsp; Mode: ${pInfo.payout_mode.toUpperCase()} &nbsp;|&nbsp; Dept: ${pInfo.department_filter} &nbsp;|&nbsp; Generated: ${new Date().toLocaleString('en-IN')} &nbsp;|&nbsp; Via Cashfree Payouts</div>
+<div class="stats"><div class="stat"><div class="stat-val">${items.length}</div><div class="stat-lbl">Total</div></div><div class="stat ok"><div class="stat-val">${succ.length}</div><div class="stat-lbl">Success</div></div><div class="stat fail"><div class="stat-val">${fail.length}</div><div class="stat-lbl">Failed</div></div><div class="stat amt"><div class="stat-val">₹${paid.toLocaleString('en-IN')}</div><div class="stat-lbl">Disbursed</div></div><div class="stat"><div class="stat-val">${rate}%</div><div class="stat-lbl">Rate</div></div></div>
+<table><thead><tr><th>#</th><th>Employee</th><th>Dept</th><th>Salary</th><th>Mode</th><th>Status</th><th>Transfer ID</th><th>UTR</th><th>Note</th></tr></thead><tbody>${rows}</tbody></table>
+<div class="footer">PayFlow Pro v3 Standalone · Cashfree Payouts · ${new Date().toLocaleDateString('en-IN')}</div></body></html>`);
+  w.document.close();
+}
+
+// ── HELPERS ──────────────────────────────────────────────
+function setMsg(m,t){ state.msg=m; state.msgT=t; }
+function fmtINR(n){ return '₹'+Number(n).toLocaleString('en-IN'); }
+function fmtDate(iso){ return new Date(iso).toLocaleString('en-IN',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}); }
+function h(str){ const d=document.createElement('div'); d.textContent=String(str||''); return d.innerHTML; }
+function today(){ return new Date().toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'}); }
+
+// ── COMPUTED ─────────────────────────────────────────────
+function filteredEmps(){ return state.deptFilter==='All'?state.employees:state.employees.filter(e=>e.department===state.deptFilter); }
+function deptStats(){ const s={}; DEPTS.forEach(d=>{ const es=state.employees.filter(e=>e.department===d); if(es.length) s[d]={count:es.length,salary:es.reduce((a,e)=>a+e.salary,0)}; }); return s; }
+function totalDisbursed(){ return state.payouts.reduce((s,p)=>s+p.total_amount,0); }
+
+// ── RENDER ENGINE ────────────────────────────────────────
+function render(){
+  document.getElementById('app').innerHTML = state.loggedIn ? renderApp() : renderLogin();
+  attachEvents();
+  animateBars();
+}
+
+function renderAlert(){
+  if(!state.msg) return '';
+  return `<div class="alert ${state.msgT}">${state.msgT==='ok'?'✅':state.msgT==='warn'?'⚠️':'❌'} ${h(state.msg)}</div>`;
+}
+
+// ─────────────────────────────────────────
+//  LOGIN PAGE
+// ─────────────────────────────────────────
+function renderLogin(){
+  return `<div class="login-page" style="width:100%;margin-left:0">
+  <div class="lp-left">
+    <div class="lp-pattern"></div>
+    <div class="lp-content">
+      <div class="lp-brand"><div class="lp-ico">💸</div><div><div class="lp-bname">PayFlow Pro</div><div class="lp-bsub">v3 · Cashfree · Standalone</div></div></div>
+      <div class="lp-headline">Bulk Salary<br><em>Simplified.</em></div>
+      <div class="lp-desc">Pay your entire team in one click. Bank transfers, UPI payouts, export reports — all in your browser. <strong style="color:var(--accent2)">No server needed.</strong></div>
+      <div class="lp-feats">
+        <div class="lp-feat"><div class="lp-dot"></div>Runs directly in your browser</div>
+        <div class="lp-feat"><div class="lp-dot"></div>Data stored locally (IndexedDB)</div>
+        <div class="lp-feat"><div class="lp-dot"></div>Cashfree Bank &amp; UPI simulation</div>
+        <div class="lp-feat"><div class="lp-dot"></div>Excel (.xlsx) 4-sheet export</div>
+        <div class="lp-feat"><div class="lp-dot"></div>PDF print-ready reports</div>
+        <div class="lp-feat"><div class="lp-dot"></div>Department-wise payout filter</div>
+      </div>
+    </div>
+    <div class="lp-footer">PayFlow Pro v3 Standalone · No XAMPP Required</div>
+  </div>
+  <div class="lp-right">
+    <div class="form-box">
+      ${renderAlert()}
+      <div class="tab-row">
+        <button class="tab-btn ${state.credTab==='login'?'on':''}" onclick="state.credTab='login';setMsg('','');render()">Sign In</button>
+        <button class="tab-btn ${state.credTab==='cred'?'on':''}" onclick="state.credTab='cred';setMsg('','');render()">Change Credentials</button>
+      </div>
+      ${state.credTab==='login' ? renderLoginForm() : renderCredForm()}
+      <div class="powered">Bulk payouts via <span class="cf-tag">CASHFREE</span> · <span class="cf-tag" style="background:#2d6a4f;color:#86efac">STANDALONE</span></div>
+    </div>
+  </div>
+</div>`;
+}
+
+function renderLoginForm(){
+  return `<div class="form-title">Welcome back</div>
+  <div class="form-sub">Sign in to access your dashboard</div>
+  <div class="creds-hint">Default → Username: <strong>admin</strong> &nbsp;·&nbsp; Password: <strong>admin123</strong></div>
+  <form id="loginForm">
+    <div class="field"><label>Username</label><input name="u" type="text" placeholder="Enter username" required autofocus></div>
+    <div class="field"><label>Password</label><input name="p" type="password" placeholder="Enter password" required></div>
+    <button type="submit" class="btn-signin">Sign In to Dashboard →</button>
+  </form>`;
+}
+
+function renderCredForm(){
+  return `<div class="sec-lbl">🔑 Change Password</div>
+  <form id="chpwdForm">
+    <div class="field"><label>Username</label><input name="u" type="text" placeholder="Your username" required></div>
+    <div class="field"><label>Current Password</label><input name="op" type="password" placeholder="Current password" required></div>
+    <div class="field"><label>New Password</label><input name="np" type="password" placeholder="New password (min 6)" required></div>
+    <div class="field"><label>Confirm Password</label><input name="cp" type="password" placeholder="Confirm new password" required></div>
+    <button type="submit" class="btn-signin">Update Password</button>
+  </form>
+  <div class="divider-line"><span>or change username</span></div>
+  <div class="sec-lbl">👤 Change Username</div>
+  <form id="chuserForm">
+    <div class="field"><label>Current Username</label><input name="ou" type="text" placeholder="Current username" required></div>
+    <div class="field"><label>New Username</label><input name="nu" type="text" placeholder="New username (min 3)" required></div>
+    <div class="field"><label>Password</label><input name="p" type="password" placeholder="Your password" required></div>
+    <button type="submit" class="btn-signin">Update Username</button>
+  </form>`;
+}
+
+// ─────────────────────────────────────────
+//  APP LAYOUT
+// ─────────────────────────────────────────
+function renderApp(){
+  const tabTitles={dashboard:'<span>Dashboard</span>',employees:'<span>Employees</span>',payout:'<span>Bulk</span> Payout',history:'Payout <span>History</span>'};
+  return `
+<aside class="sidebar">
+  <div class="sb-top">
+    <div class="sb-brand">
+      <div class="sb-icon">💸</div>
+      <div><div class="sb-name">PayFlow Pro</div><div class="sb-ver">v3 · Standalone</div></div>
+    </div>
+  </div>
+  <div class="sb-nav">
+    <div class="sb-lbl">Navigation</div>
+    <button class="sb-item ${state.tab==='dashboard'?'on':''}" onclick="gotoTab('dashboard')"><div class="sb-ico">📊</div><span>Dashboard</span></button>
+    <button class="sb-item ${state.tab==='employees'?'on':''}" onclick="gotoTab('employees')"><div class="sb-ico">👥</div><span>Employees</span><span class="sb-ct">${state.employees.length}</span></button>
+    <button class="sb-item ${state.tab==='payout'?'on':''}"   onclick="gotoTab('payout')"><div class="sb-ico">💸</div><span>Bulk Payout</span></button>
+    <button class="sb-item ${state.tab==='history'?'on':''}"  onclick="gotoTab('history')"><div class="sb-ico">📋</div><span>History</span><span class="sb-ct">${state.payouts.length}</span></button>
+  </div>
+  <div class="sb-mode"><div><span class="sb-dot"></span><span class="sb-mode-txt">SIMULATION</span></div><div class="sb-mode-sub">No XAMPP · Runs in browser</div></div>
+  <div class="sb-user">
+    <div class="sb-av">${h(state.username[0].toUpperCase())}</div>
+    <div class="sb-uname">${h(state.username)}</div>
+    <button class="sb-logout-btn" onclick="doLogout()">Exit</button>
+  </div>
+</aside>
+<div class="main">
+  <div class="topbar">
+    <div class="page-heading">${tabTitles[state.tab]||'PayFlow'}</div>
+    <div class="topbar-pills">
+      <span class="pill pill-cf">⚡ Cashfree ${CF_ENV}</span>
+      <span class="pill pill-sim">🌐 STANDALONE</span>
+      <span class="pill pill-date">${today()}</span>
+    </div>
+  </div>
+  <div class="content">
+    ${renderAlert()}
+    ${renderTab()}
+  </div>
+</div>`;
+}
+
+function gotoTab(t){ state.tab=t; state.payResults=[]; state.editEmp=null; setMsg('',''); render(); }
+
+function renderTab(){
+  if(state.tab==='dashboard') return renderDashboard();
+  if(state.tab==='employees') return renderEmployees();
+  if(state.tab==='payout')   return renderPayout();
+  if(state.tab==='history')  return renderHistory();
+  return '';
+}
+
+// ─────────────────────────────────────────
+//  DASHBOARD
+// ─────────────────────────────────────────
+function renderDashboard(){
+  const upiC=state.employees.filter(e=>e.upi_id).length;
+  const ds=deptStats(); const maxSal=Math.max(...Object.values(ds).map(d=>d.salary),1);
+  const recents=state.payouts.slice(0,5);
+  const lastPay=state.payouts[0];
+  return `
+<div class="stats-row">
+  <div class="scard c1"><div class="scard-ico">👥</div><div class="scard-val">${state.employees.length}</div><div class="scard-label">Active Employees</div><div class="scard-sub">${upiC} UPI enabled</div></div>
+  <div class="scard c2"><div class="scard-ico">₹</div><div class="scard-val">${fmtINR(state.employees.reduce((s,e)=>s+e.salary,0))}</div><div class="scard-label">Monthly Salary Pool</div><div class="scard-sub">All departments</div></div>
+  <div class="scard c3"><div class="scard-ico">✅</div><div class="scard-val">${state.payouts.length}</div><div class="scard-label">Payouts Executed</div><div class="scard-sub">Via Cashfree</div></div>
+  <div class="scard c4"><div class="scard-ico">💰</div><div class="scard-val">${fmtINR(totalDisbursed())}</div><div class="scard-label">Total Disbursed</div><div class="scard-sub">All time</div></div>
+</div>
+<div class="widgets">
+  <div class="card">
+    <div class="card-title">📂 Department Breakdown</div>
+    ${Object.entries(ds).map(([d,v])=>`
+    <div class="dept-row">
+      <div class="dept-name">${h(d)}</div>
+      <div class="dept-track"><div class="dept-fill" data-width="${Math.round(v.salary/maxSal*100)}" style="width:0%"></div></div>
+      <div class="dept-meta">${v.count} · ₹${Math.round(v.salary/1000)}K</div>
+    </div>`).join('')}
+  </div>
+  <div class="card">
+    <div class="card-title">🕐 Recent Payouts</div>
+    ${recents.length?recents.map(p=>`
+    <div class="recent-row">
+      <div><div class="recent-m">${h(p.payout_month)}</div><div class="recent-d">${fmtDate(p.created_at)}</div></div>
+      <div style="display:flex;align-items:center;gap:8px"><div class="status-dot ${p.fail_count>0?'warn':'ok'}"></div><div class="recent-a">${fmtINR(p.total_amount)}</div></div>
+    </div>`).join(''):'<div style="text-align:center;padding:20px;color:var(--muted);font-size:13px">No payouts yet. <span class="empty a" onclick="gotoTab(\'payout\')">Start →</span></div>'}
+  </div>
+</div>
+<div class="card">
+  <div class="card-title">⚡ Quick Actions</div>
+  <div style="display:flex;gap:10px;flex-wrap:wrap">
+    <button class="btn btn-dark" onclick="gotoTab('payout')">💸 Run Bulk Payout</button>
+    <button class="btn btn-accent" onclick="gotoTab('employees')">➕ Add Employee</button>
+    <button class="btn btn-ghost" onclick="gotoTab('history')">📋 View History</button>
+    ${lastPay?`<button class="btn btn-green btn-sm" onclick="exportExcel(${lastPay.id})">📊 Download Last Excel</button>
+    <button class="btn btn-amber btn-sm" onclick="exportPDF(${lastPay.id})">🖨️ Print Last PDF</button>`:''}
+  </div>
+</div>`;
+}
+
+// ─────────────────────────────────────────
+//  EMPLOYEES
+// ─────────────────────────────────────────
+function renderEmployees(){
+  const fe=filteredEmps();
+  const deptCounts={};
+  DEPTS.forEach(d=>{ deptCounts[d]=state.employees.filter(e=>e.department===d).length; });
+  const emp=state.editEmp;
+  return `
+<div class="dept-bar">
+  <button class="dept-btn ${state.deptFilter==='All'?'on':''}" onclick="state.deptFilter='All';render()">All (${state.employees.length})</button>
+  ${DEPTS.map(d=>deptCounts[d]?`<button class="dept-btn ${state.deptFilter===d?'on':''}" onclick="state.deptFilter='${d}';render()">${h(d)} (${deptCounts[d]})</button>`:'').join('')}
+</div>
+<div class="form-section">
+  <div class="form-section-title">${emp?'✏️ Edit Employee':'➕ Add New Employee'}</div>
+  <form id="empForm">
+    <input type="hidden" name="empId" value="${emp?emp.id:''}">
+    <div class="form-grid">
+      <div class="f-field"><label>Full Name</label><input name="name" required placeholder="Ravi Kumar" value="${h(emp?.name||'')}"></div>
+      <div class="f-field"><label>Email</label><input name="email" type="email" required placeholder="ravi@company.com" value="${h(emp?.email||'')}"></div>
+      <div class="f-field"><label>Mobile</label><input name="mobile" required placeholder="9000000001" value="${h(emp?.mobile||'')}"></div>
+      <div class="f-field"><label>Department</label><select name="department" required><option value="">Select…</option>${DEPTS.map(d=>`<option value="${d}" ${emp?.department===d?'selected':''}>${d}</option>`).join('')}</select></div>
+      <div class="f-field"><label>Bank Name</label><select name="bank_name" required><option value="">Select…</option>${BANKS.map(b=>`<option value="${b}" ${emp?.bank_name===b?'selected':''}>${b}</option>`).join('')}</select></div>
+      <div class="f-field"><label>Account Number</label><input name="account_number" required placeholder="1234567890" value="${h(emp?.account_number||'')}"></div>
+      <div class="f-field"><label>IFSC Code</label><input name="ifsc" required placeholder="HDFC0001234" value="${h(emp?.ifsc||'')}" style="text-transform:uppercase"></div>
+      <div class="f-field"><label>UPI ID <span style="font-size:9px;color:var(--muted)">(Optional)</span></label><input name="upi_id" placeholder="name@okaxis" value="${h(emp?.upi_id||'')}"><div class="f-hint">Leave blank if no UPI</div></div>
+    </div>
+    <div class="f-field" style="max-width:190px;margin-top:14px"><label>Monthly Salary (₹)</label><input name="salary" type="number" required placeholder="45000" value="${h(emp?.salary||'')}"></div>
+    <div class="form-actions">
+      <button type="submit" class="btn btn-dark">${emp?'💾 Update Employee':'➕ Add Employee'}</button>
+      ${emp?`<button type="button" class="btn btn-ghost" onclick="state.editEmp=null;render()">Cancel</button>`:''}
+    </div>
+  </form>
+</div>
+<div class="sec-bar"><div class="sec-title">All Employees (${fe.length})</div></div>
+${fe.length?`<div class="tbl-box"><table>
+  <thead><tr><th>Employee</th><th>Dept</th><th>Bank</th><th>IFSC</th><th>Account</th><th>UPI</th><th>Salary</th><th>Actions</th></tr></thead>
+  <tbody>${fe.map(e=>`<tr>
+    <td><div class="emp-row"><div class="emp-av">${h(e.name[0].toUpperCase())}</div><div><div class="emp-nm">${h(e.name)}</div><div class="emp-em">${h(e.email)}</div></div></div></td>
+    <td><span class="dept-tag dt-${e.department}">${h(e.department)}</span></td>
+    <td><span class="mono">${h(e.bank_name)}</span></td>
+    <td><span class="mono">${h(e.ifsc)}</span></td>
+    <td><span class="mono">${h(e.account_number)}</span></td>
+    <td>${e.upi_id?`<span class="upi-tag">${h(e.upi_id)}</span>`:'<span style="color:var(--border)">—</span>'}</td>
+    <td><span class="salary-tag">${fmtINR(e.salary)}</span></td>
+    <td><div style="display:flex;gap:5px">
+      <button class="btn btn-ghost btn-xs" onclick="state.editEmp=${JSON.stringify(e).replace(/"/g,'&quot;')};document.querySelector(\'#empForm [name=empId]\') && scrollTo(0,0);render()">✏️</button>
+      <button class="btn btn-danger btn-xs" onclick="if(confirm('Remove ${h(e.name)}?'))deleteEmployee(${e.id})">🗑️</button>
+    </div></td>
+  </tr>`).join('')}</tbody>
+</table></div>`:`<div class="empty"><div class="empty-ico">👥</div><p>No employees in this filter.</p></div>`}`;
+}
+
+// ─────────────────────────────────────────
+//  PAYOUT
+// ─────────────────────────────────────────
+function renderPayout(){
+  const pr=state.payResults;
+  const okC=pr.filter(r=>r.status==='success').length;
+  const failC=pr.filter(r=>r.status==='failed').length;
+  const paid=pr.filter(r=>r.status==='success').reduce((s,r)=>s+r.salary,0);
+  return `
+<div class="notice sim">🧪 <strong>Simulation Mode</strong> — Realistic Cashfree responses. Data saved to browser IndexedDB. No XAMPP needed!</div>
+<div class="cf-steps">
+  <div class="cf-step"><div class="cf-num">1</div><div class="cf-title">Authenticate</div><div class="cf-sub">/authorize</div></div>
+  <div class="cf-step"><div class="cf-num">2</div><div class="cf-title">Add Beneficiary</div><div class="cf-sub">/addBeneficiary</div></div>
+  <div class="cf-step"><div class="cf-num">3</div><div class="cf-title">Request Transfer</div><div class="cf-sub">/requestTransfer</div></div>
+  <div class="cf-step"><div class="cf-num">4</div><div class="cf-title">Get Status</div><div class="cf-sub">/getTransferStatus</div></div>
+</div>
+${state.employees.length===0?`<div class="empty"><div class="empty-ico">👥</div><p>No employees yet. <span class="empty a" onclick="gotoTab('employees')">Add some →</span></p></div>`:`
+<div class="pay-ctrl">
+  <div class="pay-ctrl-top">
+    <div class="ctrl-group">
+      <div class="ctrl-label">Payout Mode</div>
+      <div class="mode-btns">
+        <button class="mode-btn ${state.payMode==='bank'?'on-bank':''}" onclick="state.payMode='bank';render()">🏦 Bank</button>
+        <button class="mode-btn ${state.payMode==='upi'?'on-upi':''}"  onclick="state.payMode='upi';render()">📱 UPI</button>
+        <button class="mode-btn ${state.payMode==='auto'?'on-auto':''}" onclick="state.payMode='auto';render()">⚡ Auto</button>
+      </div>
+    </div>
+    <div class="ctrl-group">
+      <div class="ctrl-label">Filter by Department</div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap">
+        <button class="dept-btn ${state.deptFilter==='All'?'on':''}" onclick="state.deptFilter='All';render()">All</button>
+        ${DEPTS.map(d=>state.employees.some(e=>e.department===d)?`<button class="dept-btn ${state.deptFilter===d?'on':''}" onclick="state.deptFilter='${d}';render()">${d}</button>`:'').join('')}
+      </div>
+    </div>
+  </div>
+  <div class="pay-summary">
+    <div>
+      <div class="pay-total-val" id="payTotalDisp">${fmtINR(filteredEmps().reduce((s,e)=>s+e.salary,0))}</div>
+      <div class="pay-total-sub">Total for <span id="payEmpCnt">${filteredEmps().length}</span> employees</div>
+    </div>
+    <button class="btn-fire" id="payBtn" onclick="doPayoutClick()">${state.loading?'<span class="spinner"></span> Processing…':'💸 Trigger Bulk Payout via Cashfree'}</button>
+  </div>
+</div>
+<div class="tbl-box">
+  <table>
+    <thead><tr><th style="width:42px;text-align:center"><input type="checkbox" id="selAll" checked onchange="toggleAllEmp(this)"></th><th>Employee</th><th>Dept</th><th>Bank · UPI</th><th>Salary</th></tr></thead>
+    <tbody id="empPayTbody">
+      ${filteredEmps().map(e=>`<tr>
+        <td style="text-align:center"><input type="checkbox" class="ecb" data-id="${e.id}" data-sal="${e.salary}" checked onchange="calcPayTotal()"></td>
+        <td><div class="emp-row"><div class="emp-av">${h(e.name[0])}</div><div><div class="emp-nm">${h(e.name)}</div><div class="emp-em">${h(e.email)}</div></div></div></td>
+        <td><span class="dept-tag dt-${e.department}">${h(e.department)}</span></td>
+        <td><div class="mono">${h(e.bank_name)}</div>${e.upi_id?`<div class="upi-tag" style="display:inline-block;margin-top:3px">${h(e.upi_id)}</div>`:''}</td>
+        <td><span class="salary-tag">${fmtINR(e.salary)}</span></td>
+      </tr>`).join('')}
+    </tbody>
+  </table>
+</div>
+${pr.length?`
+<div class="sec-bar" style="margin-top:6px"><div class="sec-title">Payout Results</div></div>
+<div class="result-strip">
+  <div class="rs"><div class="rs-val" style="color:var(--accent)">${pr.length}</div><div class="rs-lbl">Processed</div></div>
+  <div class="rs"><div class="rs-val" style="color:var(--green2)">${okC}</div><div class="rs-lbl">Success</div></div>
+  <div class="rs"><div class="rs-val" style="color:var(--red2)">${failC}</div><div class="rs-lbl">Failed</div></div>
+  <div class="rs"><div class="rs-val" style="color:var(--accent);font-size:18px;padding-top:6px">${fmtINR(paid)}</div><div class="rs-lbl">Disbursed</div></div>
+</div>
+<div class="results-grid">${pr.map((r,i)=>`
+  <div class="rc ${r.status}" style="animation-delay:${i*0.06}s">
+    <div class="rc-head">
+      <div><div class="rc-name">${h(r.employee)}</div><div class="rc-sub">${h(r.dept)} · ${h(r.bank)}</div></div>
+      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px">
+        <span class="rc-badge ${r.status}">${r.status==='success'?'✓ SUCCESS':'✕ FAILED'}</span>
+        <span class="rc-badge ${r.emode==='upi'?'upi':'bank'}">${(r.emode||'BANK').toUpperCase()}</span>
+      </div>
+    </div>
+    <div class="rc-rows">
+      <div class="rc-row"><span class="rc-lbl">Salary</span><span class="rc-val big">${fmtINR(r.salary)}</span></div>
+      <div class="rc-hr"></div>
+      ${r.status==='success'?`
+      <div class="rc-row"><span class="rc-lbl">Beneficiary ID</span><span class="rc-val ok">${h(r.beneficiary_id||'')}</span></div>
+      <div class="rc-row"><span class="rc-lbl">Transfer ID</span><span class="rc-val">${h(r.transfer_id||'')}</span></div>
+      <div class="rc-row"><span class="rc-lbl">UTR</span><span class="rc-val amber">${h(r.utr||'')}</span></div>
+      <div class="rc-row"><span class="rc-lbl">Time</span><span class="rc-val">${h(r.timestamp||'')}</span></div>
+      <div class="rc-hr"></div>
+      <div class="rc-row"><span class="rc-lbl">Status</span><span class="rc-val ok">● ${h(r.transfer_status||'')}</span></div>`:`
+      <div class="rc-row"><span class="rc-lbl">Reason</span><span class="rc-val fail">${h(r.message||'')}</span></div>`}
+    </div>
+  </div>`).join('')}</div>`:''}
+`}`;
+}
+
+// ─────────────────────────────────────────
+//  HISTORY
+// ─────────────────────────────────────────
+function renderHistory(){
+  const pr=state.payResults;
+  const okC=pr.filter(r=>r.status==='success').length;
+  const failC=pr.filter(r=>r.status==='failed').length;
+  const paid=pr.filter(r=>r.status==='success').reduce((s,r)=>s+r.salary,0);
+  return `
+<div class="sec-bar"><div class="sec-title">Payout History (${state.payouts.length})</div></div>
+${state.payouts.length===0?`<div class="empty"><div class="empty-ico">📋</div><p>No payouts yet. <span class="empty a" onclick="gotoTab('payout')">Run your first payout →</span></p></div>`:
+state.payouts.map(p=>`
+<div class="hist-item">
+  <div class="hist-row">
+    <div><div class="hist-month">${h(p.payout_month)}</div><div class="hist-date">${fmtDate(p.created_at)} · ${(p.payout_mode||'bank').toUpperCase()}</div></div>
+    <div class="hist-stats">
+      <div class="hist-stat"><div class="hist-stat-val" style="color:var(--accent)">${p.total_employees}</div><div class="hist-stat-lbl">Emp</div></div>
+      <div class="hist-stat"><div class="hist-stat-val" style="color:var(--green2)">${p.success_count}</div><div class="hist-stat-lbl">OK</div></div>
+      <div class="hist-stat"><div class="hist-stat-val" style="color:var(--red2)">${p.fail_count}</div><div class="hist-stat-lbl">Fail</div></div>
+    </div>
+    <div class="hist-amt">${fmtINR(p.total_amount)}</div>
+    <div class="hist-actions">
+      <span class="rc-badge success">✓ ${p.status.toUpperCase()}</span>
+      <button class="btn btn-green btn-xs" onclick="exportExcel(${p.id})">📊 Excel</button>
+      <button class="btn btn-amber btn-xs" onclick="exportPDF(${p.id})">🖨️ PDF</button>
+      ${p.fail_count>0?`<button class="btn btn-danger btn-xs" onclick="if(confirm('Retry ${p.fail_count} failed?'))retryFailed(${p.id})">🔄 Retry ${p.fail_count}</button>`:''}
+    </div>
+  </div>
+</div>`).join('')}
+${pr.length?`
+<div class="sec-bar" style="margin-top:20px"><div class="sec-title">Retry Results</div></div>
+<div class="result-strip">
+  <div class="rs"><div class="rs-val" style="color:var(--accent)">${pr.length}</div><div class="rs-lbl">Retried</div></div>
+  <div class="rs"><div class="rs-val" style="color:var(--green2)">${okC}</div><div class="rs-lbl">Recovered</div></div>
+  <div class="rs"><div class="rs-val" style="color:var(--red2)">${failC}</div><div class="rs-lbl">Still Failed</div></div>
+  <div class="rs"><div class="rs-val" style="color:var(--accent);font-size:18px;padding-top:6px">${fmtINR(paid)}</div><div class="rs-lbl">Recovered</div></div>
+</div>
+<div class="results-grid">${pr.map((r,i)=>`
+  <div class="rc ${r.status}" style="animation-delay:${i*0.06}s">
+    <div class="rc-head"><div><div class="rc-name">${h(r.employee)}</div><div class="rc-sub">${h(r.dept)}</div></div>
+    <span class="rc-badge ${r.status}">${r.status==='success'?'✓ RECOVERED':'✕ FAILED'}</span></div>
+    <div class="rc-rows">
+      <div class="rc-row"><span class="rc-lbl">Salary</span><span class="rc-val big">${fmtINR(r.salary)}</span></div>
+      ${r.status==='success'?`<div class="rc-hr"></div>
+      <div class="rc-row"><span class="rc-lbl">Transfer ID</span><span class="rc-val">${h(r.transfer_id||'')}</span></div>
+      <div class="rc-row"><span class="rc-lbl">UTR</span><span class="rc-val amber">${h(r.utr||'')}</span></div>`:`
+      <div class="rc-row"><span class="rc-lbl">Reason</span><span class="rc-val fail">${h(r.message||'')}</span></div>`}
+    </div>
+  </div>`).join('')}</div>`:''}`;
+}
+
+// ── EVENT ATTACHMENT ─────────────────────────────────────
+function attachEvents(){
+  // Login
+  const lf=document.getElementById('loginForm');
+  if(lf) lf.onsubmit=e=>{e.preventDefault();const f=new FormData(lf);doLogin(f.get('u'),f.get('p'));};
+  // Change pwd
+  const cf=document.getElementById('chpwdForm');
+  if(cf) cf.onsubmit=e=>{e.preventDefault();const f=new FormData(cf);doChangePwd(f.get('u'),f.get('op'),f.get('np'),f.get('cp'));};
+  // Change user
+  const uf=document.getElementById('chuserForm');
+  if(uf) uf.onsubmit=e=>{e.preventDefault();const f=new FormData(uf);doChangeUser(f.get('ou'),f.get('nu'),f.get('p'));};
+  // Employee form
+  const ef=document.getElementById('empForm');
+  if(ef) ef.onsubmit=e=>{
+    e.preventDefault();const f=new FormData(ef);
+    const data={name:f.get('name'),email:f.get('email'),mobile:f.get('mobile'),department:f.get('department'),bank_name:f.get('bank_name'),account_number:f.get('account_number'),ifsc:f.get('ifsc').toUpperCase(),upi_id:f.get('upi_id')||'',salary:parseFloat(f.get('salary'))};
+    const eid=parseInt(f.get('empId'));
+    if(eid) editEmployee(eid,data); else addEmployee(data);
+  };
+}
+
+function doPayoutClick(){
+  if(state.loading) return;
+  const cbs=document.querySelectorAll('.ecb:checked');
+  const ids=Array.from(cbs).map(c=>parseInt(c.dataset.id));
+  triggerPayout(ids, state.payMode, state.deptFilter);
+}
+
+function toggleAllEmp(cb){
+  document.querySelectorAll('.ecb').forEach(c=>c.checked=cb.checked);
+  calcPayTotal();
+}
+
+function calcPayTotal(){
+  const cbs=document.querySelectorAll('.ecb:checked');
+  let t=0,n=0;
+  cbs.forEach(c=>{t+=parseFloat(c.dataset.sal)||0;n++;});
+  const tv=document.getElementById('payTotalDisp');
+  const nc=document.getElementById('payEmpCnt');
+  if(tv)tv.textContent=fmtINR(t);
+  if(nc)nc.textContent=n;
+}
+
+function animateBars(){
+  setTimeout(()=>{
+    document.querySelectorAll('.dept-fill[data-width]').forEach(el=>{
+      el.style.width=el.dataset.width+'%';
+    });
+  },100);
+}
+
+// ── BOOTSTRAP ────────────────────────────────────────────
+(async()=>{
+  await initDB();
+  render();
+})();
+</script>
+</body>
+</html>
